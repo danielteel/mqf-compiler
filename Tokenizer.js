@@ -1,10 +1,8 @@
 const TokenType = {
-	LineDelim: Symbol("newline"),
-
-    Question: Symbol("Question"),
-    Reference: Symbol("Reference"),
-    Choice: Symbol("Choice")
-
+	LineDelim: Symbol("nl"),
+	Character: Symbol("character"),
+	Space: Symbol("space"),
+	End: Symbol("end")
 };
 
 
@@ -38,7 +36,15 @@ class Tokenizer {
 		return TokenType;
 	}
 
+	static tokenize(code){
+		const tokenizer=new Tokenizer();
+		return tokenizer.tokenize(code);
+	}
+
 	setCode(code) {
+		if (typeof code!=='string'){
+			code='';
+		}
 		this.code = code;
 
 		this.lookIndex = 0;
@@ -48,8 +54,6 @@ class Tokenizer {
 		this.errorObj = null;
 
 		this.tokens = [];
-
-		this.currentLineText=this.look;
 	}
 
 	tokenize(code) {
@@ -58,18 +62,25 @@ class Tokenizer {
 		while (this.isNotEnd()) {
 			this.next();
 		}
-	
-		this.addToken(TokenType.NewLine, this.currentLineText?this.currentLineText.trim():null);
+		this.addToken(TokenType.End);
 
 		return this.tokens;
 	}
 
-	throwError(message) {
-		throw Error("Tokenizer error on line "+this.currentCodeLine+": "+message);
-	}
 
 	addToken(type, value = null) {
-		this.tokens.push(Tokenizer.newTokenObj(type, value, this.currentCodeLine));
+		const newToken=Tokenizer.newTokenObj(type, value, this.currentCodeLine);
+
+		if (this.tokens.length>0 && this.tokens[this.tokens.length-1].type===TokenType.Space && type===TokenType.LineDelim){
+			this.tokens[this.tokens.length-1]=newToken;
+			return;
+		}else if (this.tokens.length>0 && this.tokens[this.tokens.length-1].type===TokenType.LineDelim && (type===TokenType.Space || type===TokenType.LineDelim)){
+			return;
+		}else if (this.tokens.length===0 && (type===TokenType.Space || type===TokenType.LineDelim)){
+			return;
+		}else{
+			this.tokens.push(newToken);
+		}
 	}
 
 	isNotEnd() {
@@ -80,277 +91,34 @@ class Tokenizer {
 		if (this.isNotEnd()) {//should be impossible for this condition
 			this.lookIndex++;
 			this.look = this.code[this.lookIndex];
-
-			if (this.look) this.currentLineText+=this.look;
 		}
 	}
 
 	skipWhite() {
+		let numOfSpaces=0;
 		while (this.isNotEnd() && isSpace(this.look)) {
 			this.getChar();
+			numOfSpaces++;
+		}
+		if (numOfSpaces){
+			this.addToken(TokenType.Space, numOfSpaces);
 		}
 	}
-
-
-
-	// stringLiteral() {
-	// 	let stringTerminator=this.look;
-	// 	let str = "";
-	// 	this.getChar();
-	// 	while (this.isNotEnd() && this.look !== stringTerminator) {
-	// 		str += this.look;
-	// 		this.getChar();
-	// 	}
-	// 	if (!this.isNotEnd() && this.look !== stringTerminator) {
-	// 		this.throwError("expected string terminator but found end of code.");
-	// 	}
-	// 	this.getChar();
-	// 	this.addToken(TokenType.StringLiteral, str);
-	// }
-
-	ident() {
-		let name = "";
-		let notDone = true;
-
-		while (this.isNotEnd() && notDone === true) {
-			notDone = false;
-			if (isAlpha(this.look) || isDigit(this.look) || this.look === '_') {
-				name += this.look;
-				notDone = true;
-				this.getChar();
-			}
-		}
-
-		//if (name.length === 0) this.throwError("expected identifier but got nothing"); commented out because this should be impossible
-		
-		switch (name) {
-			case "if":
-				this.addToken(TokenType.If);
-				break;
-			case "while":
-				this.addToken(TokenType.While);
-				break;
-			case "for":
-				this.addToken(TokenType.For);
-				break;
-			case "loop":
-				this.addToken(TokenType.Loop);
-				break;
-			case "else":
-				this.addToken(TokenType.Else);
-				break;
-			case "break":
-				this.addToken(TokenType.Break);
-				break;
-
-			case "return":
-				this.addToken(TokenType.Return);
-				break;
-
-			case "exit":
-				this.addToken(TokenType.Exit);
-				break;
-
-			case "floor":
-				this.addToken(TokenType.Floor);
-				break;
-			case "ceil":
-				this.addToken(TokenType.Ceil);
-				break;
-			case "min":
-				this.addToken(TokenType.Min);
-				break;
-			case "max":
-				this.addToken(TokenType.Max);
-				break;
-			case "clamp":
-				this.addToken(TokenType.Clamp);
-				break;
-			case "abs":
-				this.addToken(TokenType.Abs);
-				break;
-
-			case "lcase":
-				this.addToken(TokenType.LCase);
-				break;
-			case "ucase":
-				this.addToken(TokenType.UCase);
-				break;
-			case "trim":
-				this.addToken(TokenType.Trim);
-				break;
-			case "len":
-				this.addToken(TokenType.Len);
-				break;
-			case "substr":
-				this.addToken(TokenType.SubStr);
-				break;
-
-			case "double":
-				this.addToken(TokenType.Double);
-				break;
-			case "string":
-				this.addToken(TokenType.String);
-				break;
-			case "bool":
-				this.addToken(TokenType.Bool);
-				break;
-
-			case "true":
-				this.addToken(TokenType.True);
-				break;
-			case "false":
-				this.addToken(TokenType.False);
-				break;
-				
-			case "null":
-				this.addToken(TokenType.Null);
-				break;
-
-			default:
-				return this.addToken(TokenType.Ident, name);
-		}
-	}
-
 
 	next() {
 		this.skipWhite();
 		if (this.isNotEnd()) {
-
-			if (isDigit(this.look) || this.look === '.') {
-				this.doubleLiteral();
-
-			} else if (isAlpha(this.look) || this.look === '_') {
-				this.ident();
-
-			} else if (this.look === '"' || this.look === "'") {
-				this.stringLiteral();
-
-			} else {
-				let symbol = this.look;
-				this.getChar();
-				switch (symbol) {
-					case ';':
-						this.addToken(TokenType.LineDelim);
-						break;
-					case ',':
-						this.addToken(TokenType.Comma);
-						break;
-
-					case '?':
-						this.addToken(TokenType.Question);
-						break;
-					case ':':
-						this.addToken(TokenType.Colon);
-						break;
-
-					case '{':
-						this.addToken(TokenType.LeftCurly);
-						break;
-					case '}':
-						this.addToken(TokenType.RightCurly);
-						break;
-
-					case '[':
-						this.addToken(TokenType.LeftSqaure);
-						break;
-					case ']':
-						this.addToken(TokenType.RightSqaure);
-						break;
-
-					case '(':
-						this.addToken(TokenType.LeftParen);
-						break;
-					case ')':
-						this.addToken(TokenType.RightParen);
-						break;
-
-					case '^':
-						this.addToken(TokenType.Exponent);
-						break;
-					case '%':
-						this.addToken(TokenType.Mod);
-						break;
-					case '+':
-						this.addToken(TokenType.Plus);
-						break;
-					case '-':
-						this.addToken(TokenType.Minus);
-						break;
-					case '*':
-						this.addToken(TokenType.Multiply);
-						break;
-					case '/':
-						if (this.isNotEnd() && this.look === '/') {
-							this.getChar();
-							while (this.isNotEnd() && this.look !== '\n') {
-								this.getChar();
-							}
-							break;
-						}
-						this.addToken(TokenType.Divide);
-						break;
-
-					case '|':
-						if (this.isNotEnd() && this.look === '|') {
-							this.getChar();
-							this.addToken(TokenType.Or);
-							break;
-						}
-						this.throwError("incomplete OR operator found, OR operators must be of boolean type '||'");
-						break;
-
-					case '&':
-						if (this.isNotEnd() && this.look === '&') {
-							this.getChar();
-							this.addToken(TokenType.And);
-							break;
-						}
-						this.throwError("incomplete AND operator found, AND operators must be of boolean type '&&'");
-						break;
-						
-					case '!':
-						if (this.isNotEnd() && this.look === '=') {
-							this.getChar();
-							this.addToken(TokenType.NotEquals);
-							break;
-						}
-						this.addToken(TokenType.Not);
-						break;
-
-					case '=':
-						if (this.isNotEnd() && this.look === '=') {
-							this.getChar();
-							this.addToken(TokenType.Equals);
-							break;
-						}
-						this.addToken(TokenType.Assignment);
-						break;
-
-					case '>':
-						if (this.isNotEnd() && this.look === '=') {
-							this.getChar();
-							this.addToken(TokenType.GreaterEquals);
-							break;
-						}
-						this.addToken(TokenType.Greater);
-						break;
-					case '<':
-						if (this.isNotEnd() && this.look === '=') {
-							this.getChar();
-							this.addToken(TokenType.LesserEquals);
-							break;
-						}
-						this.addToken(TokenType.Lesser);
-						break;
-
-					default:
-						this.throwError("Unexpected symbol found, " + symbol);
-				}
+			const symbol=this.look;
+			this.getChar();
+			if (symbol==='\n'){
+				this.addToken(TokenType.LineDelim, symbol);
+				this.currentCodeLine++;
+			}else{
+				this.addToken(TokenType.Character, symbol);
 			}
 		}
 	}
 }
 
 
-export {Tokenizer, TokenType};
+module.exports={Tokenizer, TokenType};

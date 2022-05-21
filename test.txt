@@ -1,9 +1,8 @@
-
 # SMA
 
 ?My name is _____
     Ref: birf cert
-    A. John
+    A.   John
     B. Jeff
     *C. Dan
     D. Yonkers
