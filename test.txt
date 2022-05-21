@@ -1,6 +1,6 @@
 # SMA
 
-?My name is _____
+My name is _____
     Ref: birf cert
     A.   John
     B. Jeff
@@ -10,14 +10,14 @@
 
 # Pilots
 
-?What is a bull market?
+What is a bull market?
     Ref: Officer school
     A. Scotch
     B. Fine wine
     *C. Lobster
     D. dirty sweaties would never know
 
-?Get fucked?
+Get fucked?
     Ref:  No Thx
     *A. True
     B. False

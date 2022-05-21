@@ -1,123 +1,150 @@
-const TokenType = {
-	LineDelim: Symbol("nl"),
-	Character: Symbol("character"),
-	Space: Symbol("space"),
-	End: Symbol("end")
-};
-
-
-function isDigit(character){
-	const charCode=character.charCodeAt(0);
-	if (charCode>=48 && charCode<=57){
-		return true;
-	}
-	return false;
-}
+const {TokenType} = require('./common');
 
 function isAlpha(character){
-	const charCode=character.charCodeAt(0);
-	if ((charCode>=65 && charCode<=90) || (charCode>=97 && charCode<=122)){
-		return true;
-	}
-	return false;
+    const charCode=character.charCodeAt(0);
+    if ((charCode>=65 && charCode<=90) || (charCode>=97 && charCode<=122)){
+        return true;
+    }
+    return false;
 }
 
 function isSpace(character){
-	if (character.charCodeAt(0)<=32 && character!=='\n') return true;
-	return false;
+    if (character.charCodeAt(0)<=32) return true;
+    return false;
 }
 
 class Tokenizer {
-	static newTokenObj(type, value, line) {
-		return {type: type, value: value, line: line};
+    static newTokenObj(type, value, line) {
+        return {type: type, value: value, line: line};
+    }
+
+    static get TokenType(){
+        return TokenType;
+    }
+
+    static tokenize(code){
+        const tokenizer=new Tokenizer();
+        return tokenizer.tokenize(code);
+    }
+
+	throwError(message) {
+		throw Error("Tokenizer error on line "+this.currentCodeLine+": "+message);
 	}
 
-	static get TokenType(){
-		return TokenType;
-	}
+    tokenize(code) {
+        this.setCode(code);
 
-	static tokenize(code){
-		const tokenizer=new Tokenizer();
-		return tokenizer.tokenize(code);
-	}
+        while (this.isNotEnd()) {
+            this.next();
+        }
+        this.addToken(TokenType.End);
 
-	setCode(code) {
-		if (typeof code!=='string'){
-			code='';
-		}
-		this.code = code;
+        return this.tokens;
+    }
 
-		this.lookIndex = 0;
-		this.look = this.code[0];
-		this.codeEndIndex = this.code.length;
-		this.currentCodeLine = 1;
-		this.errorObj = null;
+    setCode(code) {
+        if (typeof code!=='string'){
+            code='';
+        }
+        this.code = code;
 
-		this.tokens = [];
-	}
+        this.lookIndex = 0;
+        this.look = this.code[0];
+        this.codeEndIndex = this.code.length;
+        this.currentCodeLine = 1;
+        this.errorObj = null;
 
-	tokenize(code) {
-		this.setCode(code);
+        this.tokens = [];
+    }
 
-		while (this.isNotEnd()) {
-			this.next();
-		}
-		this.addToken(TokenType.End);
+    addToken(type, value = null) {
+        const newToken=Tokenizer.newTokenObj(type, value, this.currentCodeLine);
 
-		return this.tokens;
-	}
+        this.tokens.push(newToken);
+    }
 
+    isNotEnd() {
+        return this.lookIndex < this.codeEndIndex;
+    }
 
-	addToken(type, value = null) {
-		const newToken=Tokenizer.newTokenObj(type, value, this.currentCodeLine);
+    getChar() {
+        if (this.isNotEnd()) {//should be impossible for this condition
+            if (this.look==='\n') this.currentCodeLine++;
+            this.lookIndex++;
+            this.look = this.code[this.lookIndex];
+        }
+    }
 
-		if (this.tokens.length>0 && this.tokens[this.tokens.length-1].type===TokenType.Space && type===TokenType.LineDelim){
-			this.tokens[this.tokens.length-1]=newToken;
-			return;
-		}else if (this.tokens.length>0 && this.tokens[this.tokens.length-1].type===TokenType.LineDelim && (type===TokenType.Space || type===TokenType.LineDelim)){
-			return;
-		}else if (this.tokens.length===0 && (type===TokenType.Space || type===TokenType.LineDelim)){
-			return;
-		}else{
-			this.tokens.push(newToken);
-		}
-	}
+    skipWhite() {
+        while (this.isNotEnd() && isSpace(this.look)) {
+            this.getChar();
+        }
+    }
 
-	isNotEnd() {
-		return this.lookIndex < this.codeEndIndex;
-	}
+    readRestOfLine(){
+        let text="";
+        while (this.isNotEnd() && this.look!=='\n'){
+            text+=this.look;
+            this.getChar();
+        }
+        return text.trim();
+    }
 
-	getChar() {
-		if (this.isNotEnd()) {//should be impossible for this condition
-			this.lookIndex++;
-			this.look = this.code[this.lookIndex];
-		}
-	}
+    otherThanSection(){
+        if (this.look==='?'){
+            this.getChar();
+            this.addToken(TokenType.Question, this.readRestOfLine());
+            return;
+        }
+        const savedIndex=this.lookIndex;
 
-	skipWhite() {
-		let numOfSpaces=0;
-		while (this.isNotEnd() && isSpace(this.look)) {
-			this.getChar();
-			numOfSpaces++;
-		}
-		if (numOfSpaces){
-			this.addToken(TokenType.Space, numOfSpaces);
-		}
-	}
+        let isCorrectAnswer=false;
+        if (this.look==='*'){
+            isCorrectAnswer=true;
+            this.getChar();
+            this.skipWhite();
+        }
 
-	next() {
-		this.skipWhite();
-		if (this.isNotEnd()) {
-			const symbol=this.look;
-			this.getChar();
-			if (symbol==='\n'){
-				this.addToken(TokenType.LineDelim, symbol);
-				this.currentCodeLine++;
-			}else{
-				this.addToken(TokenType.Character, symbol);
-			}
-		}
-	}
+        let ident='';
+        while (this.isNotEnd() && isAlpha(this.look)){
+            ident+=this.look;
+            this.getChar();
+        }
+        ident=ident.toLowerCase();
+
+        this.skipWhite();
+
+        const postSymbol = this.look;
+        this.skipWhite();
+        this.getChar();
+        
+
+        if (ident==='ref' && postSymbol===':'){
+            this.addToken(TokenType.Ref, this.readRestOfLine());
+            return;
+        }
+        if (ident.length===1 && postSymbol==='.'){
+            const answerId = ident.toLowerCase().charCodeAt() - 'a'.charCodeAt();
+            this.addToken(TokenType.Answer, {id: answerId, text: this.readRestOfLine(), correct: isCorrectAnswer});
+            return;
+        }
+        
+        this.lookIndex=savedIndex-1;
+        this.getChar();
+        this.addToken(TokenType.Question, this.readRestOfLine());
+    }
+
+    next() {
+        this.skipWhite();
+        if (this.isNotEnd()) {
+            if (this.look==='#'){
+                this.getChar();
+                this.addToken(TokenType.Section, this.readRestOfLine());
+            } else {
+                this.otherThanSection();
+            }
+        }
+    }
 }
 
 
