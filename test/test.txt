@@ -1,6 +1,6 @@
 # SMA
 
-My name is _____
+My name is '_____'
     Ref: birf cert
     A.   John
     B. Jeff
@@ -15,9 +15,8 @@ What is a bull market?
     A. Scotch
     B. Fine wine
     *C. Lobster
-    D. dirty sweaties would never know
 
-Get fucked?
-    Ref:  No Thx
-    *A. True
-    B. False
+Get dunked on?
+    Ref:  pubs
+    *A. No thanks
+    B. Ok
