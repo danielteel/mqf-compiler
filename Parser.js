@@ -14,10 +14,13 @@ class Parser {
 
     parse(){
         if (this.tokens.length<=0) return [];
-
+        this.title=null;
         this.token=null;
         this.tokenIndex=-1;
         this.getToken();
+        
+        this.stripTo=0;
+        this.stripChar=null;
 
         this.mqf={sections:[]};
 
@@ -60,7 +63,20 @@ class Parser {
     }
 
     doQuestion(){
-        const question=this.match(TokenType.Question);
+        if (this.mqf.sections.length<=0){
+            this.mqf.sections.push({name: 'Questions', questions: []});
+        }
+        let question=this.match(TokenType.Question);
+        if (this.stripChar){
+            const index=question.indexOf(this.stripChar);
+            if (index>=0){
+                question=question.slice(index+this.stripChar.length+this.stripTo).trim();
+            }
+        }else{
+            if (this.stripTo>=0){
+                question=question.slice(this.stripTo).trim();
+            }
+        }
         let expectAnswerIndex=0;
         const answers=[];
         let ref=null;
@@ -97,17 +113,37 @@ class Parser {
         questions.push({num: questions.length+1, question: question, choices: answers, ref: ref, correct: correct});
     }
 
-    doQuestions(){
-        while (this.token && this.token.type===TokenType.Question){
-            this.doQuestion();
-        }
-    }
 
     doMQF(){
         while (this.token){
-            const sectionName = this.match(TokenType.Section);
-            this.mqf.sections.push({name: sectionName, questions:[]})
-            this.doQuestions();
+            switch (this.token.type){
+                case TokenType.Title:
+                    if (this.mqf.title){
+                        this.throwError('already had a title defined, dont try and make another one!');
+                    }
+                    this.mqf.title=this.match(TokenType.Title);
+                    break;
+
+                case TokenType.StripTo:
+                    this.stripChar=this.match(TokenType.StripTo);
+                    break;
+
+                case TokenType.StripNum:
+                    this.stripTo=this.match(TokenType.StripNum);
+                    break;
+
+                case TokenType.Section:
+                    const sectionName = this.match(TokenType.Section);
+                    this.mqf.sections.push({name: sectionName, questions:[]})
+                    break;
+
+                case TokenType.Question:
+                    this.doQuestion();
+                    break;
+
+                default:
+                    this.throwError('unexpected token, '+this.symbolToString(this.token));
+            }
         }
     }
 }

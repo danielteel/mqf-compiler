@@ -1,6 +1,41 @@
-# SMA
 
-My name is '_____'
+>Im a comment, these allow you to document your file
+
+>The @stripto below will strip up to the end of the character sequence in
+>the question of each question. This allows you to strip the (1). from the
+>question in the questions below. You can change this at any point in the
+>file
+
+@stripto ).
+
+>If you just want to strip a set number of characters from the beggining of
+>the question or strip a certain number after it @stripto-ed, do a 
+>@stripnum <number here>
+>this is for special case use, you probably wont need it
+
+>The line below is used to set the 'title' of the generated MQF app.
+>You can only do this once, if you try and do it twice, it will fail
+>in the parser.
+
+!Im the title bittttcchh
+
+
+>To create a new section, look at the line below, this creates an 
+>'SMA' section, and any question after it will be in that section
+: SMA
+
+>If your question starts with Ref: or any letter with a period after it,
+>prepend the question of your question with a question mark to explicitly
+>note it was the question part of a question
+    ?A. B. C. D.
+    A. A.
+    *B. B.
+    C. C.
+    D. D.
+
+>Refs are optional as you can see the question above doesnt have one,
+>but the one below does.
+    (1). My name is '_____'
     Ref: birf cert
     A.   John
     B. Jeff
@@ -8,16 +43,20 @@ My name is '_____'
     D. Yonkers
     E. sweaty
 
-# Pilots
 
-What is a bull market?
+>Here we made a new section called 'Pilots' and all questions below it
+>will be in this section
+
+: Pilots
+
+    (1). What is a bull market?
     Ref: Officer school
-    A. Scotch
-    B. Fine wine
+    *A. Scotch
+    *B. Fine wine
     *C. Lobster
-    D. dirty sweaties would never know
+    *D. dirty sweaties would never know
 
-Get fucked?
+    Get fucked?
     Ref:  No Thx
     *A. True
     B. False

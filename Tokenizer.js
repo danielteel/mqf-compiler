@@ -81,6 +81,41 @@ class Tokenizer {
         }
     }
 
+
+	getStringLiteral() {
+		let stringTerminator=this.look;
+        if (stringTerminator!=='"' && stringTerminator!=="'"){
+            this.throwError('expected a string literal start character but got '+stringTerminator);
+        }
+		let str = "";
+		this.getChar();
+		while (this.isNotEnd() && this.look !== stringTerminator) {
+			str += this.look;
+			this.getChar();
+		}
+		if (!this.isNotEnd() && this.look !== stringTerminator) {
+			this.throwError("expected string terminator but found end of code.");
+		}
+		this.getChar();
+        this.skipWhite();
+		return str;
+	}
+
+	getIdent() {
+		let name = "";
+		let notDone = true;
+
+		while (this.isNotEnd() && notDone === true) {
+			notDone = false;
+			if (isAlpha(this.look)) {
+				name += this.look;
+				notDone = true;
+				this.getChar();
+			}
+		}
+        return name.toLowerCase();
+    }
+
     readRestOfLine(){
         let text="";
         while (this.isNotEnd() && this.look!=='\n'){
@@ -137,9 +172,28 @@ class Tokenizer {
     next() {
         this.skipWhite();
         if (this.isNotEnd()) {
-            if (this.look==='#'){
+            if (this.look===':'){
                 this.getChar();
                 this.addToken(TokenType.Section, this.readRestOfLine());
+            } else if (this.look==='!'){
+                this.getChar();
+                this.addToken(TokenType.Title, this.readRestOfLine());
+            } else if (this.look==='@'){
+                this.getChar();
+                const flag=this.getIdent();
+                if (flag==='stripto'){
+                    this.addToken(TokenType.StripTo, this.readRestOfLine());
+                }else if (flag==='stripnum'){
+                    const num=parseInt(this.readRestOfLine());
+                    if (Number.isNaN(num)){
+                        this.throwError('expected a number');
+                    }
+                    this.addToken(TokenType.StripNum, num);
+                }else{
+                    this.throwError('got unexpected flag of '+flag);
+                }
+            } else if (this.look==='>'){
+                this.readRestOfLine();
             } else {
                 this.otherThanSection();
             }
