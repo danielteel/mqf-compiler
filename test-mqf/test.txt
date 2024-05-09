@@ -17,7 +17,7 @@
 >You can only do this once, if you try and do it twice, it will fail
 >in the parser.
 
-!Im the title bittttcchh
+!Im the title
 
 
 >To create a new section, look at the line below, this creates an 
@@ -28,10 +28,10 @@
 >prepend the question of your question with a question mark to explicitly
 >note it was the question part of a question
     ?A. B. C. D.
-    A. A.
+    A. "A".
     *B. B.
-    C. C.
-    D. D.
+    C. `C`.
+    D. 'D'.
 
 >Refs are optional as you can see the question above doesnt have one,
 >but the one below does.
